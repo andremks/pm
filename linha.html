@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="utf-8" />
+  <title>Rota com Animação</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.css" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    * { margin: 0; padding: 0; }
+    #map { height: 100vh; z-index: 0; }
+    #toggleBtn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 1000;
+      background-color: white;
+      padding: 10px 15px;
+      border: 1px solid #ccc;
+      cursor: pointer;
+    }
+    .leaflet-routing-container {
+      transition: transform 0.3s ease-in-out;
+      transform: translateX(100%);
+    }
+    .show-directions .leaflet-routing-container {
+      transform: translateX(0);
+    }
+  </style>
+</head>
+<body>
+  
+  <section class="fixed bottom-0 sm:bottom-2 left-1/2 -translate-x-1/2 backdrop-blur-md bg-white/45 py-4 px-2 z-[999] w-full max-w-[486px] rounded shadow-lg">
+    <div class="flex sm-justify-between justify-around">
+
+        <a class="py-2 px-6" href="index.html">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-undo2-icon lucide-undo-2"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 5.5 5.5a5.5 5.5 0 0 1-5.5 5.5H11"/></svg>
+        </a>
+
+        <a class="py-2 px-6 border" href="#">Terminal</a>
+
+        <a class="flex items-center gap-3 py-2 px-6 bg-rose-600 text-white rounded leading-none" href="#">Bairro <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-circle-check-big-icon lucide-circle-check-big"><path d="M21.801 10A10 10 0 1 1 17 3.335"/><path d="m9 11 3 3L22 4"/></svg></a>
+    </div>
+  </section>
+
+
+  <div id="map"></div>
+  <button id="toggleBtn">Mostrar/Ocultar Trajeto</button>
+  <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.min.js"></script>
+  <script>
+    const map = L.map('map').setView([-22.215807, -49.946942], 12);
+  L.tileLayer('https://api.maptiler.com/maps/bright/{z}/{x}/{y}.png?key=MFntHq36rn7Keykd3Ch3', {
+    attribution: '&copy; <a href="https://www.maptiler.com/">MapTiler</a> &copy; OpenStreetMap contributors',
+    tileSize: 512,
+    zoomOffset: -1,
+    maxZoom: 20
+  }).addTo(map);
+
+  const waypoints = [
+    L.latLng(-22.216291, -49.946438), L.latLng(-22.218441, -49.944274),
+    L.latLng(-22.220189, -49.941291), L.latLng(-22.221080, -49.941291),
+    L.latLng(-22.223437, -49.936388), L.latLng(-22.234974, -49.928975),
+    L.latLng(-22.240148, -49.933728)
+  ];
+
+  const stopIcon = L.icon({ iconUrl: 'img/ponto2.svg', iconSize: [24, 24], iconAnchor: [16, 32] });
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  waypoints.forEach((point, i) => {
+    const letter = letters[i];
+    L.marker(point, { icon: stopIcon }).addTo(map).bindPopup(`Ponto ${letter}`);
+  });
+
+  // Feriados nacionais (YYYY-MM-DD)
+  function isFeriadoHoje() {
+    const hoje = new Date();
+    const ano = hoje.getFullYear();
+    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+    const dia = String(hoje.getDate()).padStart(2, '0');
+    const dataFormatada = `${ano}-${mes}-${dia}`;
+
+    const feriados = [
+      '2025-01-01', '2025-03-25', '2025-04-18',
+      '2025-05-26', '2025-06-19', '2025-09-07',
+      '2025-10-12', '2025-11-02', '2025-11-15', '2025-12-25'
+    ];
+
+    return feriados.includes(dataFormatada);
+  }
+
+  let routeCoords = [], moveInterval = null;
+  const control = L.Routing.control({
+    waypoints: waypoints,
+    lineOptions: { styles: [{ color: 'blue', weight: 4 }] },
+    createMarker: () => null,
+    routeWhileDragging: false,
+    addWaypoints: false,
+  }).addTo(map);
+
+  control.on('routesfound', function (e) {
+    const coordinates = e.routes[0].coordinates;
+    routeCoords = coordinates.map(pt => [pt.lat, pt.lng]);
+
+    const marker = L.marker(routeCoords[0], {
+      icon: L.icon({ iconUrl: 'img/onibus.svg', iconSize: [42, 42], iconAnchor: [22, 42] })
+    }).addTo(map).bindPopup("Ônibus");
+
+    const pauseIndices = waypoints.map(p => routeCoords.findIndex(c => Math.abs(c[0] - p.lat) < 0.0005 && Math.abs(c[1] - p.lng) < 0.0001)).filter(i => i >= 0);
+    const pauseTime = 3000;
+    const duration = 30 * 60 * 1000;
+
+    const d = new Date();
+    const dia = d.getDay(); // 0 = domingo
+    const feriado = isFeriadoHoje();
+
+    let startTimes;
+    if (feriado || dia === 0) {
+      startTimes = [[9, 0], [12, 0], [15, 0], [18, 0]];
+    } else if (dia === 6) {
+      startTimes = [[10, 0], [11, 0], [12, 0], [13, 0], [14, 0], [15, 0], [16, 0], [17, 0], [18, 0]];
+    } else {
+      startTimes = [
+        [8, 0], [8, 30], [9, 0], [9, 30], [10, 0], [10, 30],
+        [11, 0], [11, 30], [12, 0], [12, 30], [13, 0], [13, 30],
+        [14, 0], [14, 30], [15, 0], [15, 30], [16, 0], [16, 30],
+        [17, 0], [17, 30], [18, 0], [18, 30], [19, 0], [19, 30],
+        [20, 0], [20, 30], [21, 0], [21, 30], [22, 0], [22, 30], [23, 0]];
+    }
+
+    startTimes = startTimes.map(([h, m]) => {
+      const t = new Date();
+      t.setHours(h, m, 0, 0);
+      return t;
+    });
+
+    const startedAnimations = new Set();
+
+    function startAnimation(startTime) {
+      if (moveInterval) clearInterval(moveInterval);
+      const now = new Date();
+      let index = Math.floor(((now - startTime) / duration) * routeCoords.length);
+      if (index < 0 || index >= routeCoords.length) return;
+      marker.setLatLng(routeCoords[index]);
+      const interval = duration / routeCoords.length;
+
+      moveInterval = setInterval(() => {
+        if (index >= routeCoords.length) return clearInterval(moveInterval);
+        const current = routeCoords[index];
+        const previous = marker.getLatLng();
+        if (previous.lat !== current[0] || previous.lng !== current[1]) marker.setLatLng(current);
+        if (pauseIndices.includes(index)) {
+          clearInterval(moveInterval);
+          setTimeout(() => { index++; startAnimation(startTime); }, pauseTime);
+        } else index++;
+      }, interval);
+    }
+
+    setInterval(() => {
+      const now = new Date();
+      startTimes.forEach(startTime => {
+        const endTime = new Date(startTime.getTime() + duration + (pauseTime * pauseIndices.length));
+        const key = startTime.toTimeString().slice(0, 5); // "HH:MM"
+        if (now >= startTime && now <= endTime && !startedAnimations.has(key)) {
+          startedAnimations.add(key);
+          startAnimation(startTime);
+        }
+      });
+    }, 5000);
+  });
+
+  document.getElementById('toggleBtn').addEventListener('click', () => {
+    document.body.classList.toggle('show-directions');
+  });
+
+
+    // GEOLOCALIZAÇÃO: apenas no mobile, máximo 2 tentativas
+    let userMarker = null, watchId = null, retryInterval = null, geoRetryCount = 0;
+
+    function isMobileDevice() {
+      return /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    }
+
+    function onUserLocationUpdate(position) {
+      const lat = position.coords.latitude;
+      const lng = position.coords.longitude;
+      if (!userMarker) {
+        userMarker = L.marker([lat, lng], {
+          icon: L.icon({ iconUrl: 'img/figure.svg', iconSize: [34, 41], iconAnchor: [25, 41], popupAnchor: [1, -34], shadowUrl: 'https://unpkg.com/leaflet@1.9.3/dist/images/marker-shadow.png', shadowSize: [54, 36] })
+        }).addTo(map).bindPopup("Você está aqui").openPopup();
+        map.setView([lat, lng], 15);
+      } else {
+        userMarker.setLatLng([lat, lng]);
+      }
+    }
+
+    function onLocationError(error) {
+      if (error.code === error.PERMISSION_DENIED) {
+        if (isMobileDevice() && geoRetryCount < 2) {
+          geoRetryCount++;
+          console.warn("Usuário negou permissão. Verificando novamente em 4 segundos...");
+          if (!retryInterval) retryInterval = setInterval(tryStartGeolocation, 4000);
+        }
+      } else if (error.code === error.POSITION_UNAVAILABLE) {
+        alert("Localização indisponível. Verifique o GPS.");
+      } else if (error.code === error.TIMEOUT) {
+        alert("Tempo esgotado para obter a localização.");
+      } else {
+        alert("Erro desconhecido: " + error.message);
+      }
+    }
+
+    function tryStartGeolocation() {
+      navigator.geolocation.getCurrentPosition(
+        pos => {
+          clearInterval(retryInterval);
+          retryInterval = null;
+          onUserLocationUpdate(pos);
+          startWatchPosition();
+        },
+        onLocationError,
+        { enableHighAccuracy: true, timeout: 5000 }
+      );
+    }
+
+    function startWatchPosition() {
+      if (watchId !== null) return;
+      watchId = navigator.geolocation.watchPosition(onUserLocationUpdate, onLocationError, {
+        enableHighAccuracy: true,
+        maximumAge: 1000,
+        timeout: 10000
+      });
+    }
+
+    if ("geolocation" in navigator && isMobileDevice()) {
+      tryStartGeolocation();
+    }
+  </script>
+</body>
+</html>
