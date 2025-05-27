@@ -53,127 +53,167 @@
   <script src="https://unpkg.com/leaflet-routing-machine/dist/leaflet-routing-machine.min.js"></script>
   <script>
     const map = L.map('map').setView([-22.215807, -49.946942], 12);
-  L.tileLayer('https://api.maptiler.com/maps/bright/{z}/{x}/{y}.png?key=MFntHq36rn7Keykd3Ch3', {
-    attribution: '&copy; <a href="https://www.maptiler.com/">MapTiler</a> &copy; OpenStreetMap contributors',
-    tileSize: 512,
-    zoomOffset: -1,
-    maxZoom: 20
-  }).addTo(map);
+L.tileLayer('https://api.maptiler.com/maps/bright/{z}/{x}/{y}.png?key=MFntHq36rn7Keykd3Ch3', {
+  attribution: '&copy; <a href="https://www.maptiler.com/">MapTiler</a> &copy; OpenStreetMap contributors',
+  tileSize: 512,
+  zoomOffset: -1,
+  maxZoom: 20
+}).addTo(map);
 
-  const waypoints = [
-    L.latLng(-22.216291, -49.946438), L.latLng(-22.218441, -49.944274),
-    L.latLng(-22.220189, -49.941291), L.latLng(-22.221080, -49.941291),
-    L.latLng(-22.223437, -49.936388), L.latLng(-22.234974, -49.928975),
-    L.latLng(-22.240148, -49.933728)
+const waypoints = [
+  L.latLng(-22.216291, -49.946438), L.latLng(-22.218441, -49.944274),
+  L.latLng(-22.220189, -49.941291), L.latLng(-22.221080, -49.941291),
+  L.latLng(-22.223437, -49.936388), L.latLng(-22.234974, -49.928975),
+  L.latLng(-22.240148, -49.933728)
+];
+
+const stopIcon = L.icon({ iconUrl: 'img/ponto2.svg', iconSize: [24, 24], iconAnchor: [16, 32] });
+const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+waypoints.forEach((point, i) => {
+  const letter = letters[i];
+  L.marker(point, { icon: stopIcon }).addTo(map).bindPopup(`Ponto ${letter}`);
+});
+
+function isFeriadoHoje() {
+  const hoje = new Date();
+  const ano = hoje.getFullYear();
+  const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+  const dia = String(hoje.getDate()).padStart(2, '0');
+  const dataFormatada = `${ano}-${mes}-${dia}`;
+
+  const feriados = [
+    '2025-01-01', '2025-03-25', '2025-04-18',
+    '2025-05-26', '2025-06-19', '2025-09-07',
+    '2025-10-12', '2025-11-02', '2025-11-15', '2025-12-25'
   ];
 
-  const stopIcon = L.icon({ iconUrl: 'img/ponto2.svg', iconSize: [24, 24], iconAnchor: [16, 32] });
-  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-  waypoints.forEach((point, i) => {
-    const letter = letters[i];
-    L.marker(point, { icon: stopIcon }).addTo(map).bindPopup(`Ponto ${letter}`);
+  return feriados.includes(dataFormatada);
+}
+
+function verificarLinhaAtivaOuRedirecionar(startTimes, duracaoEmMinutos = 30) {
+  const agora = new Date();
+  const duracaoMs = duracaoEmMinutos * 60 * 1000;
+  const algumaLinhaAtiva = startTimes.some(start => {
+    const fim = new Date(start.getTime() + duracaoMs);
+    return agora >= start && agora <= fim;
   });
 
-  // Feriados nacionais (YYYY-MM-DD)
-  function isFeriadoHoje() {
-    const hoje = new Date();
-    const ano = hoje.getFullYear();
-    const mes = String(hoje.getMonth() + 1).padStart(2, '0');
-    const dia = String(hoje.getDate()).padStart(2, '0');
-    const dataFormatada = `${ano}-${mes}-${dia}`;
 
-    const feriados = [
-      '2025-01-01', '2025-03-25', '2025-04-18',
-      '2025-05-26', '2025-06-19', '2025-09-07',
-      '2025-10-12', '2025-11-02', '2025-11-15', '2025-12-25'
+
+
+
+
+
+  if (!algumaLinhaAtiva) {
+    alert("Linha inativa");
+    window.location.href = "index.html";
+  }
+}
+
+
+
+
+
+
+
+let routeCoords = [], moveInterval = null;
+const control = L.Routing.control({
+  waypoints: waypoints,
+  lineOptions: { styles: [{ color: 'blue', weight: 4 }] },
+  createMarker: () => null,
+  routeWhileDragging: false,
+  addWaypoints: false,
+}).addTo(map);
+
+control.on('routesfound', function (e) {
+  const coordinates = e.routes[0].coordinates;
+  routeCoords = coordinates.map(pt => [pt.lat, pt.lng]);
+
+  const marker = L.marker(routeCoords[0], {
+    icon: L.icon({ iconUrl: 'img/onibus.svg', iconSize: [42, 42], iconAnchor: [22, 42] })
+  }).addTo(map).bindPopup("Ônibus");
+
+  const pauseIndices = waypoints.map(p => routeCoords.findIndex(c => Math.abs(c[0] - p.lat) < 0.0005 && Math.abs(c[1] - p.lng) < 0.0001)).filter(i => i >= 0);
+  const pauseTime = 10000;
+  const duration = 30 * 60 * 1000;
+
+  const d = new Date();
+  const dia = d.getDay();
+  const feriado = isFeriadoHoje();
+
+  let startTimes;
+  if (feriado || dia === 0) {
+    startTimes = [[9, 0], [12, 0], [15, 0], [18, 0], [22, 30], [23, 0]];
+  } else if (dia === 6) {
+    startTimes = [[10, 0], [11, 0], [12, 0], [13, 0], [14, 0], [15, 0], [16, 0], [17, 0], [18, 0]];
+  } else {
+    startTimes = [
+      [8, 0], [8, 30], [9, 0], [9, 30], [10, 0], [10, 30],
+      [11, 0], [11, 30], [12, 0], [12, 30], [13, 0], [13, 30],
+      [14, 0], [14, 30], [15, 0], [15, 30], [16, 0], [16, 30],
+      [17, 0], [17, 30], [18, 0], [18, 30], [19, 0], [19, 30],
+      [20, 0], [20, 30], [21, 0], [21, 30], [22, 0], [22, 30], [23, 0]
     ];
-
-    return feriados.includes(dataFormatada);
   }
 
-  let routeCoords = [], moveInterval = null;
-  const control = L.Routing.control({
-    waypoints: waypoints,
-    lineOptions: { styles: [{ color: 'blue', weight: 4 }] },
-    createMarker: () => null,
-    routeWhileDragging: false,
-    addWaypoints: false,
-  }).addTo(map);
+  startTimes = startTimes.map(([h, m]) => {
+    const t = new Date();
+    t.setHours(h, m, 0, 0);
+    return t;
+  });
 
-  control.on('routesfound', function (e) {
-    const coordinates = e.routes[0].coordinates;
-    routeCoords = coordinates.map(pt => [pt.lat, pt.lng]);
+  verificarLinhaAtivaOuRedirecionar(startTimes, 30);
 
-    const marker = L.marker(routeCoords[0], {
-      icon: L.icon({ iconUrl: 'img/onibus.svg', iconSize: [42, 42], iconAnchor: [22, 42] })
-    }).addTo(map).bindPopup("Ônibus");
+  const startedAnimations = new Set();
+  function startAnimation(startTime) {
+    if (moveInterval) clearInterval(moveInterval);
+    const now = new Date();
+    let index = Math.floor(((now - startTime) / duration) * routeCoords.length);
+    if (index < 0 || index >= routeCoords.length) return;
+    marker.setLatLng(routeCoords[index]);
+    const interval = duration / routeCoords.length;
 
-    const pauseIndices = waypoints.map(p => routeCoords.findIndex(c => Math.abs(c[0] - p.lat) < 0.0005 && Math.abs(c[1] - p.lng) < 0.0001)).filter(i => i >= 0);
-    const pauseTime = 10000;
-    const duration = 30 * 60 * 1000;
+    moveInterval = setInterval(() => {
+      if (index >= routeCoords.length) return clearInterval(moveInterval);
+      const current = routeCoords[index];
+      const previous = marker.getLatLng();
+      if (previous.lat !== current[0] || previous.lng !== current[1]) marker.setLatLng(current);
+      if (pauseIndices.includes(index)) {
+        clearInterval(moveInterval);
+        setTimeout(() => { index++; startAnimation(startTime); }, pauseTime);
+      } else index++;
+    }, interval);
+  }
 
-    const d = new Date();
-    const dia = d.getDay(); // 0 = domingo
-    const feriado = isFeriadoHoje();
-
-    let startTimes;
-    if (feriado || dia === 0) {
-      startTimes = [[9, 0], [12, 0], [15, 0], [18, 0], [22, 30], [23, 0]];
-    } else if (dia === 6) {
-      startTimes = [[10, 0], [11, 0], [12, 0], [13, 0], [14, 0], [15, 0], [16, 0], [17, 0], [18, 0]];
-    } else {
-      startTimes = [
-        [8, 0], [8, 30], [9, 0], [9, 30], [10, 0], [10, 30],
-        [11, 0], [11, 30], [12, 0], [12, 30], [13, 0], [13, 30],
-        [14, 0], [14, 30], [15, 0], [15, 30], [16, 0], [16, 30],
-        [17, 0], [17, 30], [18, 0], [18, 30], [19, 0], [19, 30],
-        [20, 0], [20, 30], [21, 0], [21, 30], [22, 0], [22, 30], [23, 0]];
-    }
-
-    startTimes = startTimes.map(([h, m]) => {
-      const t = new Date();
-      t.setHours(h, m, 0, 0);
-      return t;
+  setInterval(() => {
+    const now = new Date();
+    startTimes.forEach(startTime => {
+      const endTime = new Date(startTime.getTime() + duration + (pauseTime * pauseIndices.length));
+      const key = startTime.toTimeString().slice(0, 5);
+      if (now >= startTime && now <= endTime && !startedAnimations.has(key)) {
+        startedAnimations.add(key);
+        startAnimation(startTime);
+      }
     });
+  }, 5000);
+});
 
-    const startedAnimations = new Set();
+document.getElementById('toggleBtn').addEventListener('click', () => {
+  document.body.classList.toggle('show-directions');
+});
 
-    function startAnimation(startTime) {
-      if (moveInterval) clearInterval(moveInterval);
-      const now = new Date();
-      let index = Math.floor(((now - startTime) / duration) * routeCoords.length);
-      if (index < 0 || index >= routeCoords.length) return;
-      marker.setLatLng(routeCoords[index]);
-      const interval = duration / routeCoords.length;
 
-      moveInterval = setInterval(() => {
-        if (index >= routeCoords.length) return clearInterval(moveInterval);
-        const current = routeCoords[index];
-        const previous = marker.getLatLng();
-        if (previous.lat !== current[0] || previous.lng !== current[1]) marker.setLatLng(current);
-        if (pauseIndices.includes(index)) {
-          clearInterval(moveInterval);
-          setTimeout(() => { index++; startAnimation(startTime); }, pauseTime);
-        } else index++;
-      }, interval);
-    }
 
-    setInterval(() => {
-      const now = new Date();
-      startTimes.forEach(startTime => {
-        const endTime = new Date(startTime.getTime() + duration + (pauseTime * pauseIndices.length));
-        const key = startTime.toTimeString().slice(0, 5); // "HH:MM"
-        if (now >= startTime && now <= endTime && !startedAnimations.has(key)) {
-          startedAnimations.add(key);
-          startAnimation(startTime);
-        }
-      });
-    }, 5000);
-  });
 
-  document.getElementById('toggleBtn').addEventListener('click', () => {
-    document.body.classList.toggle('show-directions');
-  });
+
+
+
+
+
+
+
+
+  
 
 
 
@@ -268,6 +308,17 @@
     if ("geolocation" in navigator && isMobileDevice()) {
       tryStartGeolocation();
     }
+
+
+
+
+
+
+
+
+
+
+    
   </script>
 </body>
 </html>
