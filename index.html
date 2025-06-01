@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="icon" type="image/png" href="img/logo-topo.png">
   <title>Ponto Marília</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
@@ -18,43 +19,85 @@
       scrollbar-width: none;
     }
   </style>
+
+
+<script defer>
+    document.addEventListener('DOMContentLoaded', () => {
+      const toggleBtn = document.getElementById('menu-toggle');
+      const menu = document.getElementById('mobile-menu');
+
+      toggleBtn.addEventListener('click', () => {
+        menu.classList.toggle('max-h-0');
+        menu.classList.toggle('max-h-40');
+      });
+    });
+  </script>
+
+
+
 </head>
-<body class="bg-[#F5F6FF] min-h-screen flex items-center justify-center">
+<body class="bg-[#F2F6FF] min-h-screen flex items-center justify-center">
+
+  <header class="w-full bg-white shadow-xl fixed top-0 left-0 right-0 z-50">
+    <div class="container mx-auto px-4 py-4 flex items-center justify-between">
+      
+      <!-- Lado esquerdo: Logo -->
+      <div class="flex items-center gap-2">
+        <img src="img/logo-topo.png" alt="Ponto Marília" class="w-6">
+        <span class="text-lg font-semibold text-[#2B2B2B]">Ponto Marília</span>
+      </div>
+
+      <!-- Menu desktop -->
+      <nav class="hidden md:flex items-center gap-6 text-[#2B2B2B] font-medium">
+        <a href="#sobre" class="hover:text-[#FF004D] transition ">Sobre</a>
+        <a href="#como-usar" class="hover:text-[#FF004D] transition ">Como usar?</a>
+      </nav>
+
+      <!-- Botão toggle mobile -->
+      <button id="menu-toggle" class="md:hidden text-[#2B2B2B] focus:outline-none">
+        <!-- Ícone menu (hambúrguer) -->
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none"
+             viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+    </div>
+
+    <!-- Menu mobile (inicia colapsado) -->
+    <div id="mobile-menu" class="md:hidden overflow-hidden max-h-0 transition-all duration-300 ease-in-out bg-white px-4">
+      <nav class="flex flex-col gap-3 py-4 text-[#2B2B2B] font-medium">
+        <a href="#sobre" class="hover:text-[#FF004D] transition my-3">Sobre</a>
+        <a href="#como-usar" class="hover:text-[#FF004D] transition my-3">Como usar?</a>
+      </nav>
+    </div>
+  </header>
 
 
   <!-- Conteúdo Principal -->
   <main class="text-center space-y-6">
     <header>
-      <h1 class="text-3xl font-light text-[#2B2B2B]">
-        Ponto <strong class="text-[#FF004D] font-extrabold">Marília</strong>
+      <img src="img/logo-topo.png" alt="Ponto Marília" class="w-16 mx-auto">
+      <h1 class="text-7xl font-light text-[#2B2B2B]">
+        Ponto <br><strong class="text-[#FF004D] font-extrabold">Marília</strong>
       </h1>
-      <p class="text-[#2B2B2B] mt-2">
-        Horários de <strong class="font-semibold">Transporte<br />Urbano Público.</strong>
+      <p class="text-[#2B2B2B] py-2 px-8">
+         Encontre sua linha e veja a<br><strong class="font-semibold">localização do ônibus no mapa.</strong>
       </p>
     </header>
 
-    <section>
-      <button
-        id="openModal"
-        class="bg-[#FF004D] hover:bg-[#e60045] text-white px-6 py-3 rounded font-medium text-sm shadow-md transition-all cursor-pointer"
-        type="button"
-        aria-label="Selecionar a linha de ônibus"
-      >
-        Selecionar a linha
+    <section class="flex justify-center">
+      <button id="openModal" class="bg-[#FF004D] hover:bg-[#e60045] text-white px-6 py-3 rounded font-medium shadow-xl transition-all cursor-pointer flex gap-4 items-center"
+        type="button" aria-label="Selecionar a linha de ônibus" >
+        Selecionar a linha <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-arrow-up-right-icon lucide-arrow-up-right"><path d="M7 7h10v10"/><path d="M7 17 17 7"/></svg>
       </button>
     </section>
   </main>
 
   <!-- Modal -->
-  <aside
-    id="modal"
-    class="fixed inset-0 bg-black/85 flex items-center justify-center z-50 hidden"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="modalTitle"
-  >
-    <div id="modalContent" class="bg-white rounded p-6 w-80 max-w-[90%] max-h-[90vh] flex flex-col">
-      <h2 id="modalTitle" class="text-lg font-semibold text-[#2B2B2B] text-center mb-4">Escolha o Destino.</h2>
+  <aside id="modal" class="fixed inset-0 bg-black/85 flex items-center justify-center z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="modalTitle" >
+    <div id="modalContent" class="bg-white rounded p-6 w-[768px] max-w-[92%] max-h-[90vh] flex flex-col">
+      <h2 id="modalTitle" class="text-3xl font-semibold text-center">Escolha o Destino.</h2>
+      <p class="text-center pb-8">Para uma melhor experiência, acompanhando o seu ônibus, habilite os serviços de localização.</p>
 
       <!-- Área scrollável de links -->
       <nav class="flex flex-col gap-3 text-sm font-medium overflow-y-auto scrollbar-none pr-1 mb-4 flex-grow">
@@ -62,8 +105,16 @@
 
         <!-- 20 links manuais -->
         <a href="linha.html" class="flex justify-between items-center px-4 py-2 bg-[#F5F6FF] rounded text-[#2B2B2B] hover:bg-[#e4e6fb] transition">
-          Destino: Linha 1 <span class="text-[#FF004D] text-lg">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-check-icon lucide-check"><path d="M20 6 9 17l-5-5"/></svg>
+          Destino: Linha 1 <span class="text-[#FF004D]">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bus-front-icon lucide-bus-front"><path d="M4 6 2 7"/><path d="M10 6h4"/><path d="m22 7-2-1"/><rect width="16" height="16" x="4" y="3" rx="2"/><path d="M4 11h16"/><path d="M8 15h.01"/><path d="M16 15h.01"/><path d="M6 19v2"/><path d="M18 21v-2"/></svg>
+          </span>
+        </a>
+
+
+        <!-- 20 links manuais -->
+        <a href="linha.html" class="flex justify-between items-center px-4 py-2 bg-[#F5F6FF] rounded text-[#2B2B2B] hover:bg-[#e4e6fb] transition">
+          Destino: Linha 2 <span class="text-[#FF004D]">
+            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-bus-front-icon lucide-bus-front"><path d="M4 6 2 7"/><path d="M10 6h4"/><path d="m22 7-2-1"/><rect width="16" height="16" x="4" y="3" rx="2"/><path d="M4 11h16"/><path d="M8 15h.01"/><path d="M16 15h.01"/><path d="M6 19v2"/><path d="M18 21v-2"/></svg>
           </span>
         </a>
 
@@ -71,16 +122,40 @@
       </nav>
 
       <!-- Botão Fechar -->
-      <button
-        id="closeModal"
-        class="bg-[#FF004D] hover:bg-[#e60045] text-white px-6 py-2 rounded text-sm font-semibold transition"
-        type="button"
-        aria-label="Fechar seleção de linha"
-      >
+      <button id="closeModal"
+        class="bg-[#FF004D] hover:bg-[#e60045] text-white px-6 py-2 rounded text-sm font-semibold transition" type="button" aria-label="Fechar seleção de linha" >
         Fechar X
       </button>
     </div>
   </aside>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  <footer class="fixed bottom-0 p-6">
+    <p> ©2025 Ponto Marília  | Anpha 1.0.7v</p>
+  </footer>
+
+
+
+
+
+
+
+
+
 
   <!-- Script para Modal -->
   <script>
